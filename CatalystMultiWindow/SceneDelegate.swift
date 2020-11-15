@@ -5,21 +5,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard case let windowScene as UIWindowScene = scene else { return }
-        guard let window = windowScene.windows.first else { return }
 
         #if targetEnvironment(macCatalyst)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
-            let minSize = CGSize(width: 375, height: 667) // iPhone 6s
-            let maxSize = CGSize(width: 428, height: 926) // iPhone 12 Pro Max
-
-            // make some adjustments for 374,667 ~ 429,926
-            windowScene.sizeRestrictions!.minimumSize = CGSize(width: minSize.width - 2, height: minSize.height - 29)
-            windowScene.sizeRestrictions!.maximumSize = CGSize(width: maxSize.width, height: maxSize.height - 28)
-            let nsWindow = NSWindowProxy(window)
-            nsWindow.setMinSize(minSize)
-            nsWindow.setMaxSize(maxSize)
-            nsWindow.setFrame(CGRect(origin: .zero, size: maxSize))
-            nsWindow.center()
+        let minSize = CGSize(width: 375, height: 667) // iPhone 6s
+        let maxSize = CGSize(width: 428, height: 926) // iPhone 12 Pro Max
+        if #available(macCatalyst 14, *) {
+            windowScene.sizeRestrictions!.minimumSize = minSize
+            windowScene.sizeRestrictions!.maximumSize = maxSize
+        } else {
+            guard let window = windowScene.windows.first else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
+                // make some adjustments for 374,667 ~ 429,926
+                windowScene.sizeRestrictions!.minimumSize = CGSize(width: minSize.width - 2, height: minSize.height - 29)
+                windowScene.sizeRestrictions!.maximumSize = CGSize(width: maxSize.width, height: maxSize.height - 28)
+                let nsWindow = NSWindowProxy(window)
+                nsWindow.setMinSize(minSize)
+                nsWindow.setMaxSize(maxSize)
+                nsWindow.setFrame(CGRect(origin: .zero, size: maxSize))
+                nsWindow.center()
+            }
         }
         #endif
     }

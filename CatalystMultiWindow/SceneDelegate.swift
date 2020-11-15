@@ -1,52 +1,55 @@
-//
-//  SceneDelegate.swift
-//  CatalystMultiWindow
-//
-//  Created by BAN Jun on R 2/11/15.
-//
-
 import UIKit
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-
     var window: UIWindow?
 
-
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        // Use this method to optionally configure and attach the UIWindow `window` to the provided UIWindowScene `scene`.
-        // If using a storyboard, the `window` property will automatically be initialized and attached to the scene.
-        // This delegate does not imply the connecting scene or session are new (see `application:configurationForConnectingSceneSession` instead).
-        guard let _ = (scene as? UIWindowScene) else { return }
+        guard case let windowScene as UIWindowScene = scene else { return }
+        guard let window = windowScene.windows.first else { return }
+
+        #if targetEnvironment(macCatalyst)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0) {
+            let minSize = CGSize(width: 375, height: 667) // iPhone 6s
+            let maxSize = CGSize(width: 428, height: 926) // iPhone 12 Pro Max
+
+            // make some adjustments for 374,667 ~ 429,926
+            windowScene.sizeRestrictions!.minimumSize = CGSize(width: minSize.width - 2, height: minSize.height - 29)
+            windowScene.sizeRestrictions!.maximumSize = CGSize(width: maxSize.width, height: maxSize.height - 28)
+            let nsWindow = NSWindowProxy(window)
+            nsWindow.setMinSize(minSize)
+            nsWindow.setMaxSize(maxSize)
+            nsWindow.setFrame(CGRect(origin: .zero, size: maxSize))
+            nsWindow.center()
+        }
+        #endif
     }
-
-    func sceneDidDisconnect(_ scene: UIScene) {
-        // Called as the scene is being released by the system.
-        // This occurs shortly after the scene enters the background, or when its session is discarded.
-        // Release any resources associated with this scene that can be re-created the next time the scene connects.
-        // The scene may re-connect later, as its session was not necessarily discarded (see `application:didDiscardSceneSessions` instead).
-    }
-
-    func sceneDidBecomeActive(_ scene: UIScene) {
-        // Called when the scene has moved from an inactive state to an active state.
-        // Use this method to restart any tasks that were paused (or not yet started) when the scene was inactive.
-    }
-
-    func sceneWillResignActive(_ scene: UIScene) {
-        // Called when the scene will move from an active state to an inactive state.
-        // This may occur due to temporary interruptions (ex. an incoming phone call).
-    }
-
-    func sceneWillEnterForeground(_ scene: UIScene) {
-        // Called as the scene transitions from the background to the foreground.
-        // Use this method to undo the changes made on entering the background.
-    }
-
-    func sceneDidEnterBackground(_ scene: UIScene) {
-        // Called as the scene transitions from the foreground to the background.
-        // Use this method to save data, release shared resources, and store enough scene-specific state information
-        // to restore the scene back to its current state.
-    }
-
-
 }
 
+// magic numbers might be specific to Catalina Catalyst
+
+#if targetEnvironment(macCatalyst)
+private struct NSApplicationProxy {
+    private let app = NSClassFromString("NSApplication") as AnyObject
+    var sharedApplication: NSObject? { app.value(forKey: "sharedApplication") as? NSObject }
+    var delegate: NSObject? { sharedApplication?.value(forKey: "delegate") as? NSObject }
+    func hostWindowForUIWindow(_ window: UIWindow) -> NSObject? { delegate?.perform(Selector(("hostWindowForUIWindow:")), with: window)?.takeUnretainedValue() as? NSObject }
+}
+private struct NSWindowProxy {
+    private let nsWindow: NSObject?
+    init(_ window: UIWindow) {
+        self.nsWindow = NSApplicationProxy().hostWindowForUIWindow(window)
+    }
+    func setMinSize(_ minSize: CGSize) {
+        nsWindow?.setValue(NSValue(size: CGSize(width: minSize.width - 88, height: minSize.height - 154)), forKey: "minSize")
+    }
+    func setMaxSize(_ maxSize: CGSize) {
+        nsWindow?.setValue(NSValue(size: CGSize(width: maxSize.width, height: maxSize.height - 28)), forKey: "maxSize")
+    }
+    func setFrame(_ frame: CGRect) {
+        nsWindow?.setValue(NSValue(rect: CGRect(x: frame.origin.x, y: frame.origin.y, width: frame.size.width, height: frame.size.height - 28)), forKey: "frame")
+    }
+    func center() {
+        _ = nsWindow?.value(forKey: "center")
+    }
+}
+#endif

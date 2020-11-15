@@ -7,7 +7,8 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard case let windowScene as UIWindowScene = scene else { return }
 
         #if targetEnvironment(macCatalyst)
-        let minSize = CGSize(width: 375, height: 667) // iPhone 6s
+        let minSize = CGSize(width: 320, height: 568) // iPhone SE
+        // let minSize = CGSize(width: 375, height: 667) // iPhone 6s
         let maxSize = CGSize(width: 428, height: 926) // iPhone 12 Pro Max
         if #available(macCatalyst 14, *) {
             windowScene.sizeRestrictions!.minimumSize = minSize
